@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Form Page</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .form-container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .header-row {
+            display: grid;
+            grid-template-columns: 100px 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #007bff;
+        }
+        
+        .column-label {
+            font-weight: bold;
+            color: #007bff;
+            text-align: left;
+        }
+        
+        .form-field {
+            display: grid;
+            grid-template-columns: 100px 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+            align-items: center;
+        }
+        
+        .row-label {
+            font-weight: bold;
+            color: #333;
+        }
+        
+        select {
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: white;
+            cursor: pointer;
+            width: 100%;
+        }
+        
+        select:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 2px rgba(0,123,255,0.1);
+        }
+        
+        /* Mobile styles */
+        @media (max-width: 768px) {
+            body {
+                padding: 15px;
+            }
+            
+            .form-container {
+                padding: 15px;
+            }
+            
+            .header-row {
+                grid-template-columns: 80px 1fr 1fr;
+                gap: 8px;
+                font-size: 14px;
+            }
+            
+            .form-field {
+                grid-template-columns: 80px 1fr 1fr;
+                gap: 8px;
+                margin-bottom: 12px;
+            }
+            
+            .row-label {
+                font-size: 14px;
+            }
+            
+            select {
+                padding: 8px;
+                font-size: 14px;
+            }
+        }
+        
+        /* Extra small screens */
+        @media (max-width: 500px) {
+            body {
+                padding: 10px;
+            }
+            
+            .header-row {
+                grid-template-columns: 1fr;
+                gap: 0;
+                margin-bottom: 10px;
+            }
+            
+            .header-row > :first-child {
+                display: none;
+            }
+            
+            .column-label {
+                text-align: left;
+                padding: 5px 0;
+            }
+            
+            .form-field {
+                grid-template-columns: 1fr;
+                gap: 6px;
+                margin-bottom: 20px;
+                padding-bottom: 15px;
+                border-bottom: 1px solid #eee;
+            }
+            
+            .row-label {
+                margin-bottom: 5px;
+            }
+            
+            select {
+                padding: 12px;
+            }
+        }
+
+        .week-label {
+            font-weight: bold;
+            margin-bottom: 12px;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div id="weekLabel" class="week-label"></div>
+    <div class="form-container">
+        <div class="header-row">
+            <div></div>
+            <div class="column-label">Drop off</div>
+            <div class="column-label">Pick up</div>
+        </div>
+        
+        <div class="form-field">
+            <div class="row-label">Monday:</div>
+            <select id="monday_a" name="monday_a"></select>
+            <select id="monday_b" name="monday_b"></select>
+        </div>
+        
+        <!-- <div class="form-field">
+            <div class="row-label">Tuesday:</div>
+            <select id="tuesday_a" name="tuesday_a"></select>
+            <select id="tuesday_b" name="tuesday_b"></select>
+        </div> -->
+        
+        <div class="form-field">
+            <div class="row-label">Wednesday:</div>
+            <select id="wednesday_a" name="wednesday_a"></select>
+            <select id="wednesday_b" name="wednesday_b"></select>
+        </div>
+        
+        <!-- <div class="form-field">
+            <div class="row-label">Thursday:</div>
+            <select id="thursday_a" name="thursday_a"></select>
+            <select id="thursday_b" name="thursday_b"></select>
+        </div> -->
+        
+        <div class="form-field">
+            <div class="row-label">Friday:</div>
+            <select id="friday_a" name="friday_a"></select>
+            <select id="friday_b" name="friday_b"></select>
+        </div>
+    </div>
+    
+    <script>
+        // *** SINGLE SOURCE OF OPTIONS - EDIT HERE ***
+        const dropdownOptions = [
+            { value: "", text: "Select an option" },
+            { value: "pol", text: "pol" },
+            { value: "sarah", text: "sarah" },
+            { value: "p1", text: "p1" },
+            { value: "p2", text: "p2" },
+            { value: "p3", text: "p3" },
+            { value: "p4", text: "p4" },
+            { value: "b", text: "b" },
+        ];
+        
+        // Function to populate a select element with options
+        function populateSelect(selectElement) {
+            dropdownOptions.forEach(option => {
+                const optionElement = document.createElement('option');
+                optionElement.value = option.value;
+                optionElement.textContent = option.text;
+                selectElement.appendChild(optionElement);
+            });
+        }
+
+        // Returns a Date for the Monday of the week containing 'date' (local time).
+        function getMonday(date = new Date()) {
+            const d = new Date(date);
+            const day = d.getDay(); // 0=Sun,1=Mon,...6=Sat
+            const diffToMonday = (day === 0 ? -6 : 1) - day;
+            d.setDate(d.getDate() + diffToMonday);
+            d.setHours(0, 0, 0, 0);
+            return d;
+        }
+        function formatMonthDay(date) {
+            return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set "week of Monday X"
+            const monday = getMonday(new Date());
+            const weekLabelEl = document.getElementById("weekLabel");
+            if (weekLabelEl) {
+               weekLabelEl.textContent = `week of Monday ${formatMonthDay(monday)}`;
+            }
+            // Populate all select elements on page load (your existing code)
+            const allSelects = document.querySelectorAll('select');
+            allSelects.forEach(select => {
+                populateSelect(select);
+            });
+        });
+    </script>
+</body>
+</html>

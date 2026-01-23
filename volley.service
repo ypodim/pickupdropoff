@@ -8,6 +8,7 @@ Type=simple
 Restart=always
 RestartSec=1
 User=root
+WorkingDirectory=/home/pol/ws/pickupdropoff
 ExecStart=/usr/bin/python /home/pol/ws/pickupdropoff/www.py
 
 [Install]

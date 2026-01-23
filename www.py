@@ -148,7 +148,7 @@ async def main():
         # "certfile": "keys/localhost.pem",
         # "keyfile": "keys/localhost-key.pem",
     # })
-    http_server.listen(8888)
+    http_server.listen(8888, address="127.0.0.1")
     await asyncio.Event().wait()
 
 if __name__ == "__main__":

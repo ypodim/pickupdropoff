@@ -67,6 +67,14 @@
             border-color: #007bff;
             box-shadow: 0 0 0 2px rgba(0,123,255,0.1);
         }
+
+        .dropdown-wrapper {
+            display: contents;
+        }
+
+        .dropdown-label {
+            display: none;
+        }
         
         /* Mobile styles */
         @media (max-width: 768px) {
@@ -105,22 +113,11 @@
             body {
                 padding: 10px;
             }
-            
+
             .header-row {
-                grid-template-columns: 1fr;
-                gap: 0;
-                margin-bottom: 10px;
-            }
-            
-            .header-row > :first-child {
                 display: none;
             }
-            
-            .column-label {
-                text-align: left;
-                padding: 5px 0;
-            }
-            
+
             .form-field {
                 grid-template-columns: 1fr;
                 gap: 6px;
@@ -128,13 +125,28 @@
                 padding-bottom: 15px;
                 border-bottom: 1px solid #eee;
             }
-            
+
             .row-label {
                 margin-bottom: 5px;
             }
-            
+
+            .dropdown-wrapper {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+
+            .dropdown-label {
+                display: block;
+                font-size: 14px;
+                color: #555;
+                white-space: nowrap;
+                min-width: 65px;
+            }
+
             select {
                 padding: 12px;
+                flex: 1;
             }
         }
 
@@ -156,54 +168,56 @@
         
         <div class="form-field">
             <div class="row-label">Monday:</div>
-            <select id="monday_a" name="monday_a"></select>
-            <select id="monday_b" name="monday_b"></select>
+            <div class="dropdown-wrapper">
+                <label class="dropdown-label" for="monday_a">Drop off:</label>
+                <select id="monday_a" name="monday_a"></select>
+            </div>
+            <div class="dropdown-wrapper">
+                <label class="dropdown-label" for="monday_b">Pick up:</label>
+                <select id="monday_b" name="monday_b"></select>
+            </div>
         </div>
-        
-        <!-- <div class="form-field">
-            <div class="row-label">Tuesday:</div>
-            <select id="tuesday_a" name="tuesday_a"></select>
-            <select id="tuesday_b" name="tuesday_b"></select>
-        </div> -->
-        
+
         <div class="form-field">
             <div class="row-label">Wednesday:</div>
-            <select id="wednesday_a" name="wednesday_a"></select>
-            <select id="wednesday_b" name="wednesday_b"></select>
+            <div class="dropdown-wrapper">
+                <label class="dropdown-label" for="wednesday_a">Drop off:</label>
+                <select id="wednesday_a" name="wednesday_a"></select>
+            </div>
+            <div class="dropdown-wrapper">
+                <label class="dropdown-label" for="wednesday_b">Pick up:</label>
+                <select id="wednesday_b" name="wednesday_b"></select>
+            </div>
         </div>
-        
-        <!-- <div class="form-field">
-            <div class="row-label">Thursday:</div>
-            <select id="thursday_a" name="thursday_a"></select>
-            <select id="thursday_b" name="thursday_b"></select>
-        </div> -->
+
         
         <div class="form-field">
             <div class="row-label">Friday:</div>
-            <select id="friday_a" name="friday_a"></select>
-            <select id="friday_b" name="friday_b"></select>
+            <div class="dropdown-wrapper">
+                <label class="dropdown-label" for="friday_a">Drop off:</label>
+                <select id="friday_a" name="friday_a"></select>
+            </div>
+            <div class="dropdown-wrapper">
+                <label class="dropdown-label" for="friday_b">Pick up:</label>
+                <select id="friday_b" name="friday_b"></select>
+            </div>
         </div>
     </div>
     
     <script>
-        // *** SINGLE SOURCE OF OPTIONS - EDIT HERE ***
-        const dropdownOptions = [
-            { value: "", text: "Select an option" },
-            { value: "pol", text: "pol" },
-            { value: "sarah", text: "sarah" },
-            { value: "p1", text: "p1" },
-            { value: "p2", text: "p2" },
-            { value: "p3", text: "p3" },
-            { value: "p4", text: "p4" },
-            { value: "b", text: "b" },
-        ];
-        
         // Function to populate a select element with options
-        function populateSelect(selectElement) {
-            dropdownOptions.forEach(option => {
+        function populateSelect(selectElement, options) {
+            // Add default option first
+            const defaultOption = document.createElement('option');
+            defaultOption.value = "";
+            defaultOption.textContent = "Select an option";
+            selectElement.appendChild(defaultOption);
+
+            // Add remaining options
+            options.forEach(option => {
                 const optionElement = document.createElement('option');
                 optionElement.value = option.value;
-                optionElement.textContent = option.text;
+                optionElement.textContent = option.name;
                 selectElement.appendChild(optionElement);
             });
         }
@@ -220,19 +234,51 @@
         function formatMonthDay(date) {
             return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
         }
-        
-        document.addEventListener('DOMContentLoaded', function() {
+
+        document.addEventListener('DOMContentLoaded', async function() {
             // Set "week of Monday X"
             const monday = getMonday(new Date());
             const weekLabelEl = document.getElementById("weekLabel");
             if (weekLabelEl) {
                weekLabelEl.textContent = `week of Monday ${formatMonthDay(monday)}`;
             }
-            // Populate all select elements on page load (your existing code)
-            const allSelects = document.querySelectorAll('select');
-            allSelects.forEach(select => {
-                populateSelect(select);
-            });
+
+            // Fetch dropdown options from backend
+            try {
+                const response = await fetch('/api/dropdown-options');
+                var dropdownOptions = await response.json();
+
+                // Populate all select elements
+                const allSelects = document.querySelectorAll('select');
+                allSelects.forEach(select => {
+                    populateSelect(select, dropdownOptions);
+
+                    // Add change listener to POST selection to backend
+                    select.addEventListener('change', async function() {
+                        try {
+                            await fetch('/api/selection', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ id: this.id, value: this.value })
+                            });
+                        } catch (error) {
+                            console.error('Failed to save selection:', error);
+                        }
+                    });
+                });
+
+                // Load saved selections from backend
+                const selectionsResponse = await fetch('/api/selection');
+                const savedSelections = await selectionsResponse.json();
+                for (const [fieldId, value] of Object.entries(savedSelections)) {
+                    const select = document.getElementById(fieldId);
+                    if (select) {
+                        select.value = value;
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to fetch dropdown options:', error);
+            }
         });
     </script>
 </body>

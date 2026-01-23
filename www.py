@@ -1,37 +1,86 @@
- 
 import asyncio
 import tornado.web
 import tornado.websocket
 import tornado.httpserver
 import os
 import json
-import datetime
-
-import random
+import time
 
 
 class Store(object):
-    def __init__(self, name):
+    def __init__(self, name="store"):
         self.name = name.strip()
         self._store = {}
+        self._last_save = 0
         self.buffer = []
         self.filename = "data_%s.json" % self.name
-        print("store for %s created" % self.name)
+        self.load()
 
     def load(self):
-        pass
+        if os.path.exists(self.filename):
+            with open(self.filename, 'r') as f:
+                self._store = json.load(f)
 
-    def save(self, entry):
-        pass
+    def save(self):
+        with open(self.filename, 'w') as f:
+            json.dump(self._store, f)
 
-    def insert(self, sensor_value, now=None):
-        pass
+    def persist(self):
+        now = time.time()
+        if now - self._last_save > 1:
+            self.save()
+            self._last_save = now
+
+    def insert(self, key, val, now=None):
+        self._store[key] = val
+    def delete(self, key):
+        if key in self._store:
+            del self._store[key]
 
 class DefaultHandler(tornado.web.RequestHandler):
     def initialize(self, manager):
         self.manager = manager
     def get(self):
         self.render("index.html")
+
+# Dropdown options - single source of truth
+DROPDOWN_OPTIONS = [
+    dict(value=1, name="Pol", daughter="Elsa"),
+    dict(value=2, name="Rick", daughter="Brooke"),
+    dict(value=3, name="Sarah F", daughter="Brooke"),
+    dict(value=4, name="Sarah S", daughter="Mia"),
+    dict(value=5, name="Hannah", daughter="Ella"),
+    dict(value=6, name="Bettina", daughter="Elsa"),
+]
+
+class DropdownOptionsHandler(tornado.web.RequestHandler):
+    def get(self):
+        self.set_header("Content-Type", "application/json")
+        self.write(json.dumps(DROPDOWN_OPTIONS))
+
+class SelectionHandler(tornado.web.RequestHandler):
+    def initialize(self, manager):
+        self.manager = manager
+
+    def get(self):
+        self.set_header("Content-Type", "application/json")
+        self.write(json.dumps(self.manager._store))
+
+    def post(self):
+        data = json.loads(self.request.body)
+        field_id = data.get("id")
+        value = data.get("value")
+        option = next(filter(lambda opt: str(opt["value"]) == str(value), DROPDOWN_OPTIONS), None)
+        name = option["name"] if option else None
+        if field_id:
+            if option is None:
+                self.manager.delete(field_id)
+            else:
+                self.manager.insert(field_id, value)
+            self.manager.persist()
+            print(f"Selection updated: {field_id} = {name} {option}")
+        self.set_header("Content-Type", "application/json")
+        self.write(json.dumps({"status": "ok"}))
 
 class LiveSocket(tornado.websocket.WebSocketHandler):
     clients = set()
@@ -58,6 +107,8 @@ class LiveSocket(tornado.websocket.WebSocketHandler):
 class Application(tornado.web.Application):
     def __init__(self, manager):
         handlers = [
+            (r"/api/dropdown-options", DropdownOptionsHandler),
+            (r"/api/selection", SelectionHandler, dict(manager=manager)),
             (r"/ws", LiveSocket, dict(manager=manager)),
             (r'/favicon.ico', tornado.web.StaticFileHandler),
             (r'/static/', tornado.web.StaticFileHandler),
@@ -74,7 +125,7 @@ class Application(tornado.web.Application):
         super(Application, self).__init__(handlers, **settings)
 
 async def main():
-    manager = Store("filename")
+    manager = Store()
     app = Application(manager)
     http_server = tornado.httpserver.HTTPServer(app)#, ssl_options={
         # "certfile": "keys/localhost.pem",

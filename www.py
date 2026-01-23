@@ -5,7 +5,7 @@ import tornado.httpserver
 import os
 import json
 import time
-
+import datetime
 
 class Store(object):
     def __init__(self, name="store"):
@@ -31,9 +31,26 @@ class Store(object):
             self.save()
             self._last_save = now
 
+    def get_key(self, key):
+        week = datetime.date.today().isocalendar().week
+        return f"w{week}-{key}"
+    def get_week(self, key):
+        return key.split('-')[0]
+
+    def get_all(self):
+        week = datetime.date.today().isocalendar().week
+        result = {}
+        for k,v in self._store.items():
+            w, key = k.split('-')
+            if w == f"w{week}":
+                result[key] = v
+        return result
+
     def insert(self, key, val, now=None):
+        key = self.get_key(key)
         self._store[key] = val
     def delete(self, key):
+        key = self.get_key(key)
         if key in self._store:
             del self._store[key]
 
@@ -64,7 +81,7 @@ class SelectionHandler(tornado.web.RequestHandler):
 
     def get(self):
         self.set_header("Content-Type", "application/json")
-        self.write(json.dumps(self.manager._store))
+        self.write(json.dumps(self.manager.get_all()))
 
     def post(self):
         data = json.loads(self.request.body)

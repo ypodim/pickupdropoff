@@ -31,28 +31,20 @@ class Store(object):
             self.save()
             self._last_save = now
 
-    def get_key(self, key):
-        week = datetime.date.today().isocalendar().week
-        return f"w{week}-{key}"
-    def get_week(self, key):
-        return key.split('-')[0]
+    def get_all(self, week):
+        week_key = str(week)
+        return self._store.get(week_key, {})
 
-    def get_all(self):
-        week = datetime.date.today().isocalendar().week
-        result = {}
-        for k,v in self._store.items():
-            w, key = k.split('-')
-            if w == f"w{week}":
-                result[key] = v
-        return result
+    def insert(self, week, key, val):
+        week_key = str(week)
+        if week_key not in self._store:
+            self._store[week_key] = {}
+        self._store[week_key][key] = val
 
-    def insert(self, key, val, now=None):
-        key = self.get_key(key)
-        self._store[key] = val
-    def delete(self, key):
-        key = self.get_key(key)
-        if key in self._store:
-            del self._store[key]
+    def delete(self, week, key):
+        week_key = str(week)
+        if week_key in self._store and key in self._store[week_key]:
+            del self._store[week_key][key]
 
 class DefaultHandler(tornado.web.RequestHandler):
     def initialize(self, manager):
@@ -80,20 +72,30 @@ class SelectionHandler(tornado.web.RequestHandler):
         self.manager = manager
 
     def get(self):
+        week = self.get_argument("week", None)
+        if week:
+            week = int(week)
+        else:
+            week = datetime.date.today().isocalendar().week
         self.set_header("Content-Type", "application/json")
-        self.write(json.dumps(self.manager.get_all()))
+        self.write(json.dumps(self.manager.get_all(week)))
 
     def post(self):
         data = json.loads(self.request.body)
         field_id = data.get("id")
         value = data.get("value")
+        week = data.get("week")
+        if week:
+            week = int(week)
+        else:
+            week = datetime.date.today().isocalendar().week
         option = next(filter(lambda opt: str(opt["value"]) == str(value), DROPDOWN_OPTIONS), None)
         name = option["name"] if option else None
         if field_id:
             if option is None:
-                self.manager.delete(field_id)
+                self.manager.delete(week, field_id)
             else:
-                self.manager.insert(field_id, value)
+                self.manager.insert(week, field_id, value)
             self.manager.persist()
             print(f"Selection updated: {field_id} = {name} {option}")
         self.set_header("Content-Type", "application/json")
@@ -144,11 +146,9 @@ class Application(tornado.web.Application):
 async def main():
     manager = Store()
     app = Application(manager)
-    http_server = tornado.httpserver.HTTPServer(app)#, ssl_options={
-        # "certfile": "keys/localhost.pem",
-        # "keyfile": "keys/localhost-key.pem",
-    # })
-    http_server.listen(8181, address="127.0.0.1")
+    http_server = tornado.httpserver.HTTPServer(app)
+    # http_server.listen(8181, address="127.0.0.1")
+    http_server.listen(8181)
     await asyncio.Event().wait()
 
 if __name__ == "__main__":

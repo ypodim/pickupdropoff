@@ -290,6 +290,14 @@
             }
         }
 
+        function updateDropdownsDisabledState() {
+            const isPastWeek = weekOffset < 0;
+            const allSelects = document.querySelectorAll('select');
+            allSelects.forEach(select => {
+                select.disabled = isPastWeek;
+            });
+        }
+
         async function loadSelections() {
             const monday = getMondayWithOffset(weekOffset);
             const week = getWeekNumber(monday);
@@ -311,6 +319,7 @@
             } catch (error) {
                 console.error('Failed to load selections:', error);
             }
+            updateDropdownsDisabledState();
         }
 
         document.addEventListener('DOMContentLoaded', async function() {

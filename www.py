@@ -89,6 +89,13 @@ class SelectionHandler(tornado.web.RequestHandler):
             week = int(week)
         else:
             week = datetime.date.today().isocalendar().week
+
+        if week < datetime.date.today().isocalendar().week:
+            print("can't edit the past")
+            self.set_header("Content-Type", "application/json")
+            self.write(json.dumps({"status": "not editable"}))
+            return
+
         option = next(filter(lambda opt: str(opt["value"]) == str(value), DROPDOWN_OPTIONS), None)
         name = option["name"] if option else None
         if field_id:
@@ -98,6 +105,7 @@ class SelectionHandler(tornado.web.RequestHandler):
                 self.manager.insert(week, field_id, value)
             self.manager.persist()
             print(f"Selection updated: {field_id} = {name} {option}")
+
         self.set_header("Content-Type", "application/json")
         self.write(json.dumps({"status": "ok"}))
 

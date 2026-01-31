@@ -60,6 +60,7 @@ DROPDOWN_OPTIONS = [
     dict(value=4, name="Sarah S", daughter="Mia"),
     dict(value=5, name="Hannah", daughter="Ella"),
     dict(value=6, name="Bettina", daughter="Elsa"),
+    dict(value=7, name="Greg", daughter="Ella"),
 ]
 
 class DropdownOptionsHandler(tornado.web.RequestHandler):
